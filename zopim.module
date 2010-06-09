@@ -1,0 +1,152 @@
+<?php
+// $Id$
+
+/*
+ * @file
+ * Drupal Module: zopim
+ * Adds the required Javascript for Zopim chat to the bottom of all your Drupal pages
+ */
+
+function zopim_help($path, $arg) {
+  switch ($path) {
+    case 'admin/settings/zopim':
+      return;
+  }
+}
+
+function zopim_perm() {
+  return array('administer zopim', 'use PHP for zopim visibility');
+}
+
+function zopim_menu() {
+  $items['admin/settings/zopim'] = array(
+    'title' => 'Zopim',
+    'description' => 'Configure the settings used to generate your Zopim code.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('zopim_admin_settings_form'),
+    'access arguments' => array('administer zopim'),
+    'file' => 'zopim.admin.inc',
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  return $items;
+}
+
+function zopim_footer($main = 0) {
+  global $user;
+  $id = variable_get('zopim_account', '');
+
+  // 1. Check if the Zopim account number has a value.
+  // 2. Add JS based on visibility value.
+  // 3. Check if we should add the JS for the currently active user's role.
+  if (!empty($id) && _zopim_visibility_pages() && _zopim_visibility_user($user)) {
+    $script = <<<EOS
+document.write(unescape("%3Cscript src='" + document.location.protocol + "//zopim.com/?{$id}' charset='utf-8' type='text/javascript'%3E%3C/script%3E"));
+EOS;
+    drupal_add_js($script, 'inline', 'footer');
+  }
+}
+
+/**
+ * Implementation of hook_requirements().
+ */
+function zopim_requirements($phase) {
+  $requirements = array();
+
+  if ($phase == 'runtime') {
+    // Raise warning if Zopim user account has not been set yet.
+    if (variable_get('zopim_account', false) == false) {
+      $requirements['zopim'] = array(
+        'title' => t('Zopim module'),
+        'description' => t('Zopim module has not been configured yet. Please configure its settings from the <a href="@url">Zopim settings page</a>.', array('@url' => url('admin/settings/zopim'))),
+        'severity' => REQUIREMENT_ERROR,
+        'value' => t('Not configured'),
+      );
+    }
+  }
+
+  return $requirements;
+}
+
+/**
+ * Based on visibility setting this function returns TRUE if Zopim code should
+ * be added to the current page and otherwise FALSE.
+ */
+function _zopim_visibility_pages() {
+  static $page_match;
+
+  // Cache visibility setting in hook_init for hook_footer.
+  if (!isset($page_match)) {
+
+    $visibility = variable_get('zopim_visibility', 0);
+    $pages = variable_get('zopim_pages', '');
+
+    // Match path if necessary.
+    if (!empty($pages)) {
+      if ($visibility < 2) {
+        $path = drupal_get_path_alias($_GET['q']);
+        // Compare with the internal and path alias (if any).
+        $page_match = drupal_match_path($path, $pages);
+        if ($path != $_GET['q']) {
+          $page_match = $page_match || drupal_match_path($_GET['q'], $pages);
+        }
+        // When $visibility has a value of 0, the block is displayed on
+        // all pages except those listed in $pages. When set to 1, it
+        // is displayed only on those pages listed in $pages.
+        $page_match = !($visibility xor $page_match);
+      }
+      else {
+        $page_match = drupal_eval($pages);
+      }
+    }
+    else {
+      $page_match = TRUE;
+    }
+
+  }
+  return $page_match;
+}
+
+/**
+ * Tracking visibility check for an user object.
+ *
+ * @param $account
+ *   A user object containing an array of roles to check.
+ * @return boolean
+ *   A decision on if the current user is being tracked by Zopim.
+ */
+function _zopim_visibility_user($account) {
+
+  $enabled = FALSE;
+
+  // Is current user a member of a role that should be tracked?
+  if (_zopim_visibility_roles($account)) {
+    $enabled = TRUE;
+  }
+
+  return $enabled;
+}
+
+/**
+ * Based on visibility setting this function returns TRUE if Zopim code should
+ * be added for the current role and otherwise FALSE.
+ */
+function _zopim_visibility_roles($account) {
+
+  $enabled = TRUE;
+  $roles = variable_get('zopim_roles', array());
+
+  if (array_sum($roles) > 0) {
+    // One or more roles are selected for tracking.
+    foreach (array_keys($account->roles) as $rid) {
+      // Is the current user a member of one role selected in admin settings?
+      if (isset($roles[$rid]) && $rid == $roles[$rid]) {
+        // Current user is a member of a role that is selected in admin settings.
+        $enabled = FALSE;
+        break;
+      }
+    }
+  }
+
+  return $enabled;
+}

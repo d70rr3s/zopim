@@ -1,0 +1,28 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Installation file for Zopim module.
+ */
+
+function zopim_install() {
+  variable_set('zopim_visibility', 0);
+
+  // Remove tracking from all administrative pages
+  $pages = array(
+    'admin',
+    'admin/*',
+    'user/*/*',
+    'node/add*',
+    'node/*/*',
+  );
+  variable_set('zopim_pages', implode("\n", $pages));
+}
+
+function zopim_uninstall() {
+  variable_del('zopim_account');
+  variable_del('zopim_visibility');
+  variable_del('zopim_pages');
+  variable_del('zopim_roles');
+}
