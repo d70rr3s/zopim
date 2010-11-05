@@ -15,6 +15,7 @@ function zopim_admin_settings_form(&$form_state) {
     '#type' => 'fieldset',
     '#title' => t('General settings'),
     '#collapsible' => FALSE,
+    '#group' => 'zopim',
   );
   
   $form['account']['zopim_account'] = array(
@@ -35,6 +36,7 @@ function zopim_admin_settings_form(&$form_state) {
     '#type' => 'fieldset',
     '#title' => t('Role specific script settings'),
     '#collapsible' => TRUE,
+    '#group' => 'zopim',
   );
 
   $roles = user_roles();
@@ -56,6 +58,7 @@ function zopim_admin_settings_form(&$form_state) {
     '#type' => 'fieldset',
     '#title' => t('Page specific script settings'),
     '#collapsible' => TRUE,
+    '#group' => 'zopim',
   );
 
   $access = user_access('use PHP for zopim visibility');
@@ -73,7 +76,7 @@ function zopim_admin_settings_form(&$form_state) {
 
     if ($access) {
       $options[] = t('Add if the following PHP code returns <code>TRUE</code> (PHP-mode, experts only).');
-      $description .= ' '. t('If the PHP-mode is chosen, enter PHP code between %php. Note that executing incorrect PHP-code can break your Drupal site.', array('%php' => '<?php ?>'));
+      $description .= ' '. t('If the PHP-mode is chosen, enter PHP code between %php tags. Note that executing incorrect PHP-code can break your Drupal site.', array('%php' => '<?php ?>'));
     }
     $form['page_vis_settings']['zopim_visibility'] = array(
       '#type' => 'radios',

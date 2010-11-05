@@ -32,18 +32,21 @@ function zopim_menu() {
   return $items;
 }
 
-function zopim_footer($main = 0) {
+/**
+ * Implementation of hook_page_alter().
+ */
+function zopim_page_alter(&$page) {
   global $user;
   $id = variable_get('zopim_account', '');
 
   // 1. Check if the Zopim account number has a value.
   // 2. Add JS based on visibility value.
   // 3. Check if we should add the JS for the currently active user's role.
-  if (!empty($id) && _zopim_visibility_pages() && _zopim_visibility_user($user)) {
+  if (!empty($id) && _zopim_visibility_pages() && _zopim_visibility_user_test($user)) {
     $script = <<<EOS
 document.write(unescape("%3Cscript src='" + document.location.protocol + "//zopim.com/?{$id}' charset='utf-8' type='text/javascript'%3E%3C/script%3E"));
 EOS;
-    drupal_add_js($script, 'inline', 'footer');
+    drupal_add_js($script, array('type' => 'inline', 'scope' => 'footer'));
   }
 }
 
@@ -95,8 +98,8 @@ function _zopim_visibility_pages() {
         // is displayed only on those pages listed in $pages.
         $page_match = !($visibility xor $page_match);
       }
-      else {
-        $page_match = drupal_eval($pages);
+      elseif (module_exists('php')) {
+        $page_match = php_eval($pages);
       }
     }
     else {
@@ -115,7 +118,7 @@ function _zopim_visibility_pages() {
  * @return boolean
  *   A decision on if the current user is being tracked by Zopim.
  */
-function _zopim_visibility_user($account) {
+function _zopim_visibility_user_test($account) {
 
   $enabled = FALSE;
 
