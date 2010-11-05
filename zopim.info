@@ -2,3 +2,8 @@
 name = "Zopim Chat"
 description = Adds Zopim javascript tracking code to all your site's pages.
 package = Statistics
+core = 7.x
+files[] = zopim.module
+files[] = zopim.admin.inc
+files[] = zopim.install
+configure = admin/config/system/zopim

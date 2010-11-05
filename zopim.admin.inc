@@ -3,13 +3,21 @@
 
 /**
  * @file
- * Administrative page callbacks for the zopim module.
+ * Administrative page callbacks for the Zopim module.
  */
 
 /**
  * Implementation of hook_admin_settings() for configuring the module
+ *
+ * @param array $form_state
+ *   structure associative drupal form array
+ * @return array
  */
 function zopim_admin_settings_form(&$form_state) {
+  $form['zopim'] = array(
+    '#type' => 'vertical_tabs',
+  );
+
   // General Settings
   $form['account'] = array(
     '#type' => 'fieldset',
@@ -17,7 +25,6 @@ function zopim_admin_settings_form(&$form_state) {
     '#collapsible' => FALSE,
     '#group' => 'zopim',
   );
-  
   $form['account']['zopim_account'] = array(
     '#type' => 'textfield',
     '#title' => t('Zopim account number'),
@@ -73,7 +80,6 @@ function zopim_admin_settings_form(&$form_state) {
   else {
     $options = array(t('Add to every page except the listed pages.'), t('Add to the listed pages only.'));
     $description = t("Enter one page per line as Drupal paths. The '*' character is a wildcard. Example paths are %blog for the blog page and %blog-wildcard for every personal blog. %front is the front page.", array('%blog' => 'blog', '%blog-wildcard' => 'blog/*', '%front' => '<front>'));
-
     if ($access) {
       $options[] = t('Add if the following PHP code returns <code>TRUE</code> (PHP-mode, experts only).');
       $description .= ' '. t('If the PHP-mode is chosen, enter PHP code between %php tags. Note that executing incorrect PHP-code can break your Drupal site.', array('%php' => '<?php ?>'));
@@ -97,6 +103,13 @@ function zopim_admin_settings_form(&$form_state) {
   return system_settings_form($form);
 }
 
+/**
+ * Implementation of hook_admin_settings_form_validate().
+ *
+ * @param array $form
+ *   structured associative drupal form array.
+ * @param array $form_state
+ */
 function zopim_admin_settings_form_validate($form, &$form_state) {
   if (empty($form_state['values']['zopim_account'])) {
     form_set_error('zopim_account', t('A valid Zopim account number is needed.'));
