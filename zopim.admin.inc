@@ -47,7 +47,7 @@ function zopim_admin_settings_form(&$form_state) {
     '#title' => t('Remove script for specific roles'),
     '#default_value' => variable_get('zopim_roles', array()),
     '#options' => $role_options,
-    '#description' => t('Remove script only for the selected role(s). If none of the roles are selected, all roles will have the script. If a user has none of the roles checked, that user will have the script.'),
+    '#description' => t('Remove script only for the selected role(s). If none of the roles are selected, all roles will have the script. Otherwise, any roles selected here will NOT have the script.'),
   );
   // END Role specific visibility configurations.
 
