@@ -13,7 +13,7 @@
  *   structure associative drupal form array
  * @return array
  */
-function zopim_admin_settings_form(&$form_state) {
+function zopim_admin_settings_form() {
   $form['zopim'] = array(
     '#type' => 'vertical_tabs',
   );
