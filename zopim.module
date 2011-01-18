@@ -31,7 +31,16 @@ function zopim_help($path, $arg) {
  *   Array of available permissions
  */
 function zopim_permission() {
-  return array('administer zopim', 'use PHP for zopim visibility');
+	return array(
+		'administer zopim' => array(
+			'title' => t('Administer Zopim module'),
+			'description' => t('Permission to change Zopim settings')
+		),
+		'use PHP for Zopim visibility' => array(
+			'title' => t('Use PHP for Zopim visibility'),
+			'description' => t('Permission to set PHP conditions to customize Zopim visibility on various pages')
+		)
+	);
 }
 
 /**
