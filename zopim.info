@@ -1,4 +1,3 @@
-; $Id$
 name = "Zopim Chat"
 description = Adds Zopim javascript tracking code to all your site's pages.
 package = Statistics
