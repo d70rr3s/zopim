@@ -80,7 +80,7 @@ function zopim_page_alter(&$page) {
     $script = <<<EOS
 document.write(unescape("%3Cscript src='" + document.location.protocol + "//zopim.com/?{$id}' charset='utf-8' type='text/javascript'%3E%3C/script%3E"));
 EOS;
-    drupal_add_js($script, array('type' => 'inline', 'scope' => 'footer'));
+    drupal_add_js($script, array('type' => 'inline', 'scope' => 'footer', 'group' => JS_THEME));
   }
 }
 
