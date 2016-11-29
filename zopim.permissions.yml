@@ -1,0 +1,3 @@
+administer zopim:
+  title: 'Administer Zopim module'
+  description: 'Permission to change Zopim Chat settings'

@@ -2,192 +2,134 @@
 
 /*
  * @file
- * Drupal Module: zopim
- * Adds the required Javascript for Zopim chat to the bottom of all your Drupal pages
+ * Adds the required Javascript for Zopim Chat widget to the bottom of all your
+ * Drupal pages.
  */
 
+use Drupal\Component\Utility\Unicode;
+use Drupal\Core\Path\PathMatcher;
+use Drupal\Core\Url;
+
+define('ZOPIM_BLACKLIST_MODE', 0);
+define('ZOPIM_WHITELIST_MODE', 1);
+
 /**
- * Implementation of hook_help().
- *
- * @param string $path
- *   router menu path.
- * @param array $arg
- *   array corresponding to return value of arg().
- * @return string
- *   localized string containing help text.
+ * Implements hook_page_attachments().
  */
-function zopim_help($path, $arg) {
-  switch ($path) {
-    case 'admin/help#zopim':
-      return;
+function zopim_page_attachments(array &$page) {
+  // Load module settings.
+  $config = \Drupal::config('zopim.settings');
+
+  static $already_added = FALSE;
+  // Don't add the Zopim Chat widget multiple times.
+  if ($already_added) {
+    return;
   }
-}
-
-/**
- * Implementation of hook_permission().
- *
- * @return array
- *   Array of available permissions
- */
-function zopim_permission() {
-	return array(
-		'administer zopim' => array(
-			'title' => t('Administer Zopim module'),
-			'description' => t('Permission to change Zopim settings')
-		),
-		'use PHP for Zopim visibility' => array(
-			'title' => t('Use PHP for Zopim visibility'),
-			'description' => t('Permission to set PHP conditions to customize Zopim visibility on various pages')
-		)
-	);
-}
-
-/**
- * Implementation of hook_menu().
- *
- * @return array
- *   structured associative array of menu items.
- */
-function zopim_menu() {
-  $items['admin/config/system/zopim'] = array(
-    'title' => 'Zopim',
-    'description' => 'Configure the settings used to generate your Zopim code.',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('zopim_admin_settings_form'),
-    'access arguments' => array('administer zopim'),
-    'file' => 'zopim.admin.inc',
-    'type' => MENU_NORMAL_ITEM,
-  );
-
-  return $items;
-}
-
-/**
- * Implementation of hook_page_alter().
- *
- * @global object $user
- *   full user object for current user
- * @param  $page
- *   nested array of renderable elements that make up the page.
- */
-function zopim_page_alter(&$page) {
-  global $user;
-  $id = variable_get('zopim_account', '');
-  // 1. Check if the Zopim account number has a value.
-  // 2. Add JS based on visibility value.
-  // 3. Check if we should add the JS for the currently active user's role.
-  if (!empty($id) && _zopim_visibility_pages() && _zopim_visibility_user_test($user)) {
-    $script = <<<EOS
-document.write(unescape("%3Cscript src='" + document.location.protocol + "//zopim.com/?{$id}' charset='utf-8' type='text/javascript'%3E%3C/script%3E"));
-EOS;
-    drupal_add_js($script, array('type' => 'inline', 'scope' => 'footer', 'group' => JS_THEME));
+  // Don't add the Zopim Chat widget during installation.
+  if (drupal_installation_attempted()) {
+    return;
   }
-}
-
-/**
- * Implementation of hook_requirements().
- *
- * @param string $phase
- *   either 'install' or 'runtime' depending on install or status report page.
- * @return array
- *   associative array of requirements
- */
-function zopim_requirements($phase) {
-  $requirements = array();
-  if ($phase == 'runtime') {
-    // Raise warning if Zopim user account has not been set yet.
-    if (variable_get('zopim_account', false) == false) {
-      $requirements['zopim'] = array(
-        'title' => t('Zopim module'),
-        'description' => t('Zopim module has not been configured yet. Please configure its settings from the <a href="@url">Zopim settings page</a>.', array('@url' => url('admin/settings/zopim'))),
-        'severity' => REQUIREMENT_ERROR,
-        'value' => t('Not configured'),
-      );
-    }
+  // Don't add the Zopim Chat widget if it's not configured.
+  if (empty($config->get('account_number'))) {
+    return;
   }
-  return $requirements;
+  // Don't add the Zopim Chat widget on speified paths.
+  if (!_zopim_active()) {
+    return;
+  }
+  // Don't add the Zopim Chat widget for speified roles.
+  if (!_zopim_role()) {
+    return;
+  }
+
+  // Insert options as javascript settings.
+  $js_settings = [
+    'account_number' => $config->get('account_number'),
+  ];
+
+  // Add Zopim Chat js settings.
+  $page['#attached']['drupalSettings']['zopim'] = $js_settings;
+
+  // Add and initialise the Zopim Chat widget.
+  $page['#attached']['library'][] = 'zopim/zopim';
+
+  $already_added = TRUE;
 }
 
 /**
- * Utility function to determing visibility.
- * Based on visibility setting this function returns TRUE if Zopim code should
- * be added to the current page and otherwise FALSE.
+ * Check if Zopim Chat widget should be active for the current URL.
  *
- * @staticvar boolean $page_match
- *   whether page is visible (true) or not (false).
  * @return boolean
- *   a decision on visibility, true/false
+ *   TRUE if it should be active for the current page, otherwise FALSE.
  */
-function _zopim_visibility_pages() {
-  static $page_match;
-  // Cache visibility setting in hook_init for hook_footer.
-  if (!isset($page_match)) {
-    $visibility = variable_get('zopim_visibility', 0);
-    $pages = variable_get('zopim_pages', '');
-    // Match path if necessary.
-    if (!empty($pages)) {
-      if ($visibility < 2) {
-        $path = drupal_get_path_alias($_GET['q']);
-        // Compare with the internal and path alias (if any).
-        $page_match = drupal_match_path($path, $pages);
-        if ($path != $_GET['q']) {
-          $page_match = $page_match || drupal_match_path($_GET['q'], $pages);
-        }
-        // When $visibility has a value of 0, the block is displayed on
-        // all pages except those listed in $pages. When set to 1, it
-        // is displayed only on those pages listed in $pages.
-        $page_match = !($visibility xor $page_match);
-      }
-      elseif (module_exists('php')) {
-        $page_match = php_eval($pages);
-      }
-    }
-    else {
-      $page_match = TRUE;
-    }
+function _zopim_active() {
+  // Make it possible deactivate Zopim Chat with
+  // parameter ?zopim=no in the url.
+  if (isset($_GET['zopim']) && $_GET['zopim'] == 'no') {
+    return FALSE;
   }
+
+  // Assume there are not matches until one is found.
+  $page_match = FALSE;
+
+  // Convert path to lowercase. This allows comparison of the same path
+  // with different case. Ex: /Page, /page, /PAGE.
+  $config = \Drupal::config('zopim.settings');
+  $pages = Unicode::strtolower(_zopim_array_to_string($config->get('pages')));
+
+  // Compare the lowercase path alias (if any) and internal path.
+  $path = \Drupal::service('path.current')->getPath();
+  $current_language = \Drupal::languageManager()->getCurrentLanguage()->getId();
+  $path_alias = Unicode::strtolower(\Drupal::service('path.alias_storage')->lookupPathAlias($path, $current_language));
+  $page_match = \Drupal::service('path.matcher')->matchPath($path_alias, $pages);
+  if ($path_alias != $path) {
+    $page_match = $page_match || \Drupal::service('path.matcher')->matchPath($path, $pages);
+  }
+  $page_match = $config->get('visibility') == ZOPIM_BLACKLIST_MODE ? !$page_match : $page_match;
+
   return $page_match;
 }
 
 /**
- * Utility function to perform tracking visibility check for an user object.
+ * Check if Zopim Chat widget should be active for the current user role.
  *
- * @param object $account
- *   a user object containing an array of roles to check.
  * @return boolean
- *   a decision on if the current user is being tracked by Zopim.
+ *   TRUE if it should be active for the current user, otherwise FALSE.
  */
-function _zopim_visibility_user_test($account) {
-  $enabled = FALSE;
-  // Is current user a member of a role that should be tracked?
-  if (_zopim_visibility_roles($account)) {
-    $enabled = TRUE;
+function _zopim_role() {
+  $current_user_roles = Drupal::currentUser()->getRoles();
+  $selected_roles = \Drupal::config('zopim.settings')->get('roles');
+
+  if (count($selected_roles) == 0 || !array_intersect($current_user_roles, $selected_roles)) {
+    return TRUE;
   }
-  return $enabled;
+
+  return FALSE;
 }
 
 /**
- * Based on visibility setting this function returns TRUE if Zopim code should
- * be added for the current role and otherwise FALSE.
+ * Converts a text with lines (\n) into an array of lines.
  *
- * @param object $account
- *   a full user object.
- * @return boolean
- *   a decision on visibility, true/false
+ * @param string $text
+ *   Text with lines to convert.
+ *
+ * @return array
+ *   Array with as many items as non-empty lines in the text.
  */
-function _zopim_visibility_roles($account) {
-  $enabled = TRUE;
-  $roles = variable_get('zopim_roles', array());
-  if (array_sum($roles) > 0) {
-    // One or more roles are selected for tracking.
-    foreach (array_keys($account->roles) as $rid) {
-      // Is the current user a member of one role selected in admin settings?
-      if (isset($roles[$rid]) && $rid == $roles[$rid]) {
-        // Current user is a member of a role that is selected in admin settings.
-        $enabled = FALSE;
-        break;
-      }
-    }
-  }
-  return $enabled;
+function _zopim_string_to_array($text) {
+  $text = str_replace("\r\n", "\n", $text);
+  return array_filter(explode("\n", $text), 'trim');
+}
+
+/**
+ * Converts an array of lines into an text with lines (\n).
+ *
+ * @param array $array
+ *   Array to convert to text with lines.
+ *
+ * @return string
+ *   Text with lines.
+ */
+function _zopim_array_to_string($array) {
+  return implode("\r\n", $array);
 }

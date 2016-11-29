@@ -1,0 +1,4 @@
+zopim.settings:
+ title: 'Zopim Chat'
+ route_name: zopim.settings
+ base_route: zopim.settings

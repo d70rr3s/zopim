@@ -1,0 +1,5 @@
+zopim.settings:
+ title: 'Zopim Chat'
+ description: 'Configure the settings for Zopim Chat.'
+ parent: system.admin_config_services
+ route_name: zopim.settings

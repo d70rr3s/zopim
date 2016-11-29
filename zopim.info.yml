@@ -1,0 +1,6 @@
+name: Zopim Chat
+type: module
+description: Adds Zopim javascript tracking code to all your site's pages.
+package: Utility
+core: 8.x
+configure: zopim.settings

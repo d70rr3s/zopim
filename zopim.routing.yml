@@ -1,0 +1,7 @@
+zopim.settings:
+  path: 'admin/config/services/zopim'
+  defaults:
+    _form: '\Drupal\zopim\Form\SettingsForm'
+    _title: 'Zopim Chat'
+  requirements:
+    _permission: 'administer zopim'

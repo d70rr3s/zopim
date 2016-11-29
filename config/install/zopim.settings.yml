@@ -1,0 +1,9 @@
+account_number: ''
+visibility: 0
+pages:
+ - '/admin'
+ - '/admin/*'
+ - '/node/add/*'
+ - '/node/*/edit'
+ - '/user/*/*'
+roles:

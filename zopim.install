@@ -2,32 +2,26 @@
 
 /**
  * @file
- * Installation file for Zopim module.
+ * Install, update and uninstall functions for the Zopim Chat module.
  */
 
 /**
- * Implementation of hook_install().
+ * Implementation of hook_requirements().
  */
-function zopim_install() {
-  variable_set('zopim_visibility', 0);
+function zopim_requirements($phase) {
+  $requirements = [];
 
-  // Remove tracking from all administrative pages
-  $pages = array(
-    'admin',
-    'admin/*',
-    'user/*/*',
-    'node/add*',
-    'node/*/*',
-  );
-  variable_set('zopim_pages', implode("\n", $pages));
-}
+  if ($phase == 'runtime') {
+    // Raise warning if Zopim Chat user account has not been set yet.
+    if (\Drupal::config('zopim.settings')->get('account_number', FALSE) == FALSE) {
+      $requirements['zopim'] = [
+        'title' => t('Zopim Chat module'),
+        'description' => t('Zopim Chat module has not been configured yet. Please configure its settings from the <a href=":url">Zopim Chat settings page</a>.', [':url' => \Drupal::url('zopim.settings')]),
+        'severity' => REQUIREMENT_ERROR,
+        'value' => t('Not configured'),
+      ];
+    }
+  }
 
-/**
- * Implementation of hook_uninstall().
- */
-function zopim_uninstall() {
-  variable_del('zopim_account');
-  variable_del('zopim_visibility');
-  variable_del('zopim_pages');
-  variable_del('zopim_roles');
+  return $requirements;
 }

@@ -1,0 +1,22 @@
+zopim.settings:
+  type: config_object
+  label: 'Zopim Chat settings'
+  mapping:
+    account_number:
+      type: string
+      label: 'Zopim Chat account number'
+    visibility:
+      type: integer
+      label: 'Show Zopim Chat widget on specific pages'
+    pages:
+      type: sequence
+      label: 'Pages'
+      sequence:
+        - type: string
+          label: 'Page'
+    roles:
+      type: sequence
+      label: 'Hide Zopim Chat widget for specific user roles'
+      sequence:
+        - type: string
+          label: 'Role'
