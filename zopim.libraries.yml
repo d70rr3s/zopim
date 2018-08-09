@@ -1,6 +1,0 @@
-zopim:
-  version: VERSION
-  js:
-    js/zopim.js: { scope: footer }
-  dependencies:
-    - core/drupalSettings

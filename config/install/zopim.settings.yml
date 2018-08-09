@@ -1,9 +1,6 @@
-account_number: ''
-visibility: 0
-pages:
- - '/admin'
- - '/admin/*'
- - '/node/add/*'
- - '/node/*/edit'
- - '/user/*/*'
-roles:
+integration: 'zopim'
+zopim_account: null
+zendesk_hostname: null
+embed:
+  value: null
+  format: full_html

@@ -1,135 +1,34 @@
 <?php
 
-/*
+/**
  * @file
- * Adds the required Javascript for Zopim Chat widget to the bottom of all your
- * Drupal pages.
+ * Contains 'zopim' module hooks.
  */
 
-use Drupal\Component\Utility\Unicode;
-use Drupal\Core\Path\PathMatcher;
-use Drupal\Core\Url;
-
-define('ZOPIM_BLACKLIST_MODE', 0);
-define('ZOPIM_WHITELIST_MODE', 1);
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\zopim\Form\SettingsForm;
 
 /**
- * Implements hook_page_attachments().
+ * Implements hook_help().
  */
-function zopim_page_attachments(array &$page) {
-  // Load module settings.
-  $config = \Drupal::config('zopim.settings');
+function zopim_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.zopim':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('This module provides an integration for <a href=":zopim-url">Zopim live-chat</a> service.', [':zopim-url' => 'https://zopim.com/?lang=en']) . '</p>';
 
-  static $already_added = FALSE;
-  // Don't add the Zopim Chat widget multiple times.
-  if ($already_added) {
-    return;
+      return $output;
   }
-  // Don't add the Zopim Chat widget during installation.
-  if (drupal_installation_attempted()) {
-    return;
-  }
-  // Don't add the Zopim Chat widget if it's not configured.
-  if (empty($config->get('account_number'))) {
-    return;
-  }
-  // Don't add the Zopim Chat widget on speified paths.
-  if (!_zopim_active()) {
-    return;
-  }
-  // Don't add the Zopim Chat widget for speified roles.
-  if (!_zopim_role()) {
-    return;
-  }
-
-  // Insert options as javascript settings.
-  $js_settings = [
-    'account_number' => $config->get('account_number'),
-  ];
-
-  // Add Zopim Chat js settings.
-  $page['#attached']['drupalSettings']['zopim'] = $js_settings;
-
-  // Add and initialise the Zopim Chat widget.
-  $page['#attached']['library'][] = 'zopim/zopim';
-
-  $already_added = TRUE;
 }
 
 /**
- * Check if Zopim Chat widget should be active for the current URL.
- *
- * @return boolean
- *   TRUE if it should be active for the current page, otherwise FALSE.
+ * Implements hook_rebuild().
  */
-function _zopim_active() {
-  // Make it possible deactivate Zopim Chat with
-  // parameter ?zopim=no in the url.
-  if (isset($_GET['zopim']) && $_GET['zopim'] == 'no') {
-    return FALSE;
-  }
-
-  // Assume there are not matches until one is found.
-  $page_match = FALSE;
-
-  // Convert path to lowercase. This allows comparison of the same path
-  // with different case. Ex: /Page, /page, /PAGE.
-  $config = \Drupal::config('zopim.settings');
-  $pages = Unicode::strtolower(_zopim_array_to_string($config->get('pages')));
-
-  // Compare the lowercase path alias (if any) and internal path.
-  $path = \Drupal::service('path.current')->getPath();
-  $current_language = \Drupal::languageManager()->getCurrentLanguage()->getId();
-  $path_alias = Unicode::strtolower(\Drupal::service('path.alias_storage')->lookupPathAlias($path, $current_language));
-  $page_match = \Drupal::service('path.matcher')->matchPath($path_alias, $pages);
-  if ($path_alias != $path) {
-    $page_match = $page_match || \Drupal::service('path.matcher')->matchPath($path, $pages);
-  }
-  $page_match = $config->get('visibility') == ZOPIM_BLACKLIST_MODE ? !$page_match : $page_match;
-
-  return $page_match;
-}
-
-/**
- * Check if Zopim Chat widget should be active for the current user role.
- *
- * @return boolean
- *   TRUE if it should be active for the current user, otherwise FALSE.
- */
-function _zopim_role() {
-  $current_user_roles = Drupal::currentUser()->getRoles();
-  $selected_roles = \Drupal::config('zopim.settings')->get('roles');
-
-  if (count($selected_roles) == 0 || !array_intersect($current_user_roles, $selected_roles)) {
-    return TRUE;
-  }
-
-  return FALSE;
-}
-
-/**
- * Converts a text with lines (\n) into an array of lines.
- *
- * @param string $text
- *   Text with lines to convert.
- *
- * @return array
- *   Array with as many items as non-empty lines in the text.
- */
-function _zopim_string_to_array($text) {
-  $text = str_replace("\r\n", "\n", $text);
-  return array_filter(explode("\n", $text), 'trim');
-}
-
-/**
- * Converts an array of lines into an text with lines (\n).
- *
- * @param array $array
- *   Array to convert to text with lines.
- *
- * @return string
- *   Text with lines.
- */
-function _zopim_array_to_string($array) {
-  return implode("\r\n", $array);
+function zopim_rebuild() {
+  $config_factory = \Drupal::configFactory();
+  $js_collection = \Drupal::service('asset.js.collection_optimizer');
+  $tags_invalidator = \Drupal::service('cache_tags.invalidator');
+  $form = new SettingsForm($config_factory, $js_collection, $tags_invalidator);
+  $form->createAssets();
 }

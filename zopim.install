@@ -2,22 +2,39 @@
 
 /**
  * @file
- * Install, update and uninstall functions for the Zopim Chat module.
+ * Contains 'zopim' module installation hooks.
  */
 
+use Drupal\Core\Url;
+use Drupal\zopim\Form\SettingsForm;
+
 /**
- * Implementation of hook_requirements().
+ * Implements hook_requirements().
  */
 function zopim_requirements($phase) {
   $requirements = [];
 
-  if ($phase == 'runtime') {
-    // Raise warning if Zopim Chat user account has not been set yet.
-    if (\Drupal::config('zopim.settings')->get('account_number', FALSE) == FALSE) {
+  if ($phase === 'runtime') {
+    $config = \Drupal::config('zopim.settings');
+    switch (TRUE) {
+      case ($config->get('integration') === SettingsForm::INTEGRATION_ZOPIM &&
+        $config->get('zopim_account') === NULL):
+      case ($config->get('integration') === SettingsForm::INTEGRATION_ZENDESK &&
+      $config->get('zendesk_hostname') === NULL):
+      case ($config->get('integration') === SettingsForm::INTEGRATION_EMBED &&
+        $config->get('embed.value') === NULL):
+        $failed = TRUE;
+        break;
+
+      default:
+        $failed = FALSE;
+    }
+
+    if ($failed === TRUE) {
       $requirements['zopim'] = [
         'title' => t('Zopim Chat module'),
-        'description' => t('Zopim Chat module has not been configured yet. Please configure its settings from the <a href=":url">Zopim Chat settings page</a>.', [':url' => \Drupal::url('zopim.settings')]),
-        'severity' => REQUIREMENT_ERROR,
+        'description' => t('Zopim Chat module has not been configured yet. Please configure its settings from the <a href=":url">Zopim Chat settings page</a>.', [':url' => Url::fromRoute('zopim.settings', ['absolute' => TRUE])]),
+        'severity' => REQUIREMENT_WARNING,
         'value' => t('Not configured'),
       ];
     }

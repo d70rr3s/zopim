@@ -1,8 +1,8 @@
 {
   "name": "drupal/zopim",
   "type": "drupal-module",
-  "description": "zopim integration to drupal",
-  "keywords": ["Drupal"],
+  "description": "Zopim live-chat integration with Drupal",
+  "keywords": ["Drupal", "Zendesk", "Zopim"],
   "license": "GPL-2.0+",
   "homepage": "https://www.drupal.org/project/zopim",
   "minimum-stability": "dev",
@@ -10,5 +10,10 @@
     "issues": "https://www.drupal.org/project/issues/zopim",
     "source": "http://cgit.drupalcode.org/zopim"
   },
-  "require": { }
+  "require": {
+    "drupal/core": ">=8.3 <9.0"
+  },
+  "require-dev": {
+    "drupal/coder": "^8.2"
+  }
 }
